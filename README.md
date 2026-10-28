@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # HAI716-Projet-Agent
 
 # Projet Le robot de réconfort
@@ -57,3 +58,6 @@ ses perceptions, et le contenu des casiers en se plaçant devant. Sections
 
 Lisez les annexes de l'énoncé avant d'écrire quoi que ce soit : parcours en
 largeur, exemple déroulé, pseudo-code et replanification. Tout y est.
+=======
+# hai716-robot-p1
+>>>>>>> a816d24a2708b123fbf6dcfc7646d6a9677f49a4
