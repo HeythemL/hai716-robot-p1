@@ -45,7 +45,9 @@ class Robot:
         self.repli        = "aucun"
         self.motif_echec  = None
 
+    # ------------------------------------------------------------------
     # Interface appelee par agent.py
+    # ------------------------------------------------------------------
 
     def nouvelle_demande(self, message, resident_id):
         """Reinitialise l'etat pour une nouvelle demande."""
@@ -86,3 +88,118 @@ class Robot:
     @property
     def est_succes(self):
         return self.etat == "DONE"
+
+    # ------------------------------------------------------------------
+    # Machine a etats
+    # ------------------------------------------------------------------
+
+    def _step(self, position, sel_pos):
+        """Un pas de la machine. Retourne une action ou None (transition pure)."""
+
+        if self.etat == "ALLER_DICTIONNAIRE":
+            cibles = chemin.cases_adjacentes_libres(self.pos_dico, self.carte.est_traversable)
+            if position in cibles:
+                self.etat = "CONSULTER"
+                return None  # transition immediate -> prochain _step
+            return self._avancer(position, cibles, "resident inaccessible")
+
+        elif self.etat == "CONSULTER":
+            res = self.lecteur.identifier(self.message)
+            if res is None:
+                self.etat        = "ECHEC"
+                self.motif_echec = "emotion indeterminee"
+                return ("ATTENDRE", None)
+            self.emotion, self.intensite = res
+            self.candidats = roue.candidats(self.emotion, self.intensite)
+            self.etat = "ALLER_ARMOIRE"
+            return ("CONSULTER", None)
+
+        elif self.etat == "ALLER_ARMOIRE":
+            cibles = chemin.cases_adjacentes_libres(self.pos_arm, self.carte.est_traversable)
+            if position in cibles:
+                self.etat = "FOUILLER"
+                return None
+            return self._avancer(position, cibles, "resident inaccessible")
+
+        elif self.etat == "FOUILLER":
+            return self._fouiller(sel_pos)
+
+        elif self.etat == "PRENDRE":
+            action = ("PRENDRE", self.objet_porte)
+            self.etat = "ALLER_RESIDENT"
+            return action
+
+        elif self.etat == "ALLER_RESIDENT":
+            pos_res = self.residents[self.resident_id]
+            cibles  = chemin.cases_adjacentes_libres(pos_res, self.carte.est_traversable)
+            if position in cibles:
+                self.etat = "DONNER"
+                return None
+            return self._avancer(position, cibles, "resident inaccessible")
+
+        elif self.etat == "DONNER":
+            action = ("DONNER", self.objet_porte)
+            self.etat = "DONE"
+            return action
+
+        # DONE / ECHEC : ne devrait plus etre appele
+        return ("ATTENDRE", None)
+
+    # ------------------------------------------------------------------
+    # Logique de fouille de l'armoire
+    # ------------------------------------------------------------------
+
+    def _fouiller(self, sel_pos):
+        """Choisit le prochain mouvement dans l'armoire.
+        
+        On cherche le premier candidat non connu comme vide.
+        Si on est dessus -> PRENDRE. Sinon -> CHERCHER un pas vers lui.
+        """
+        cible = None
+        for cand in self.candidats:
+            casier = cand.casier
+            if casier not in self.casiers_vus:
+                cible = cand; break  # jamais vu : peut etre garni
+            if self.casiers_vus[casier] is not None:
+                cible = cand; break  # connu comme garni
+            # connu vide -> on passe au suivant
+
+        if cible is None:
+            self.etat        = "ECHEC"
+            self.motif_echec = "armoire vide"
+            return ("ATTENDRE", None)
+
+        if sel_pos == cible.casier:
+            # on est la, le contenu a ete enregistre par mettre_a_jour ce tick
+            self.objet_porte   = self.casiers_vus[cible.casier]
+            self.casier_choisi = cible.casier
+            self.repli         = cible.repli
+            self.etat          = "PRENDRE"
+            return None  # transition immediate
+
+        # on n'est pas encore au bon casier : un pas vers lui
+        mouvements = sel_module.route(sel_pos, cible.casier)
+        return ("CHERCHER", mouvements[0])
+
+    # ------------------------------------------------------------------
+    # Utilitaires
+    # ------------------------------------------------------------------
+
+    def _avancer(self, position, cibles, motif_si_impossible):
+        """Renvoie AVANCER vers cibles, ou ECHEC si le BFS ne trouve rien."""
+        if not cibles:
+            self.etat        = "ECHEC"
+            self.motif_echec = motif_si_impossible
+            return ("ATTENDRE", None)
+        prochain = chemin.premier_pas(position, cibles, self.carte.est_traversable)
+        if prochain is None:
+            self.etat        = "ECHEC"
+            self.motif_echec = motif_si_impossible
+            return ("ATTENDRE", None)
+        direction = geometrie.direction_entre(position, prochain)
+        return ("AVANCER", direction)
+
+    @staticmethod
+    def _adjacent(pos, cible):
+        """Verifie si pos est orthogonalement adjacent a cible."""
+        return abs(pos[0] - cible[0]) + abs(pos[1] - cible[1]) == 1
