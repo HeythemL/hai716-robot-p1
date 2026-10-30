@@ -3,7 +3,6 @@
 Usage :
     python agent.py <carte.json> <scenario.json> <dossier_donnees> <trace.json>
 """
-import json
 import sys
 from pathlib import Path
 
@@ -62,20 +61,10 @@ def main():
     lecteur = LecteurEmotion(dico_data)
     robot   = Robot(carte_mentale, lecteur, pos_armoire, pos_dico, residents)
 
-    # ---- recupere les noms de l'equipe depuis rendu.json si present ----
-    equipe_membres = []
-    chemin_rendu = Path(__file__).resolve().parent / "rendu.json"
-    if chemin_rendu.exists():
-        try:
-            with open(chemin_rendu, "r", encoding="utf-8") as f:
-                equipe_membres = json.load(f).get("equipe", [])
-        except Exception:
-            pass
-
     trace = Trace(
         nom_carte    = carte_data["nom"],
         nom_scenario = scenario_data["nom"],
-        equipe       = equipe_membres,
+        equipe       = [],  # a remplir dans rendu.json
     )
 
     # ---- boucle principale : une demande a la fois ----------------------
@@ -116,6 +105,35 @@ def main():
             # reset objet porte pour la prochaine demande
             sim.objet_porte = None
 
+        # enregistrement de la livraison
+        if robot.est_succes:
+            trace.ajouter_livraison(
+                demande       = num,
+                resident      = rid,
+                emotion       = robot.emotion,
+                intensite     = robot.intensite,
+                casier_choisi = robot.casier_choisi,
+                repli         = robot.repli,
+                objet         = robot.objet_porte,
+                succes        = True,
+            )
+        else:
+            # si le robot porte encore un objet (echec apres PRENDRE), on le repose
+            if sim.objet_porte is not None:
+                sim.objet_porte = None
+            trace.ajouter_livraison(
+                demande       = num,
+                resident      = rid,
+                emotion       = robot.emotion,
+                intensite     = robot.intensite,
+                casier_choisi = robot.casier_choisi,
+                repli         = robot.repli,
+                objet         = None,
+                succes        = False,
+                motif_echec   = robot.motif_echec or "resident inaccessible",
+            )
+
+    # ---- ecriture de la trace -------------------------------------------
     trace.ecrire(chemin_trace)
     print(f"Trace ecrite dans {chemin_trace}")
 
