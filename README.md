@@ -1,59 +1,160 @@
-# HAI716-Projet-Agent
+# HAI716 — Projet Agent : Le Robot de Réconfort
 
-# Projet Le robot de réconfort
+> **Projet de semestre — Master Informatique (POA / SMA)**  
+> **Équipe :** LAOUICI Heythem & MOKADDEM Sara  
+> **Langage :** Python 3 (aucune dépendance externe requise)
 
-Code de départ du projet de semestre. Un robot à perception locale traverse
-un appartement, consulte un dictionnaire pour lire l'émotion d'un message,
-fouille une armoire et rapporte l'objet au résident.
+Un agent autonome à perception locale navigue dans un appartement modélisé sous forme de grille, consulte un dictionnaire pour identifier l'émotion d'un message transmis par un résident, explore une armoire selon la roue des émotions de Plutchik, et livre l'objet de réconfort approprié.
 
-**L'énoncé complet est dans [`ENONCE.pdf`](ENONCE.pdf). Lisez-le d'abord.**
+L'énoncé complet du projet est disponible dans [`ENONCE.pdf`](ENONCE.pdf).
 
-## Récupérer le code
+---
 
+## Sommaire
+
+- [Installation & Prérequis](#installation--prérequis)
+- [Commandes d'exécution (Usage)](#commandes-dexécution-usage)
+  - [Format de la commande](#format-de-la-commande)
+  - [Exécution des scénarios (1 à 5)](#exécution-des-scénarios-1-à-5)
+  - [Validation des entrées & Codes de retour](#validation-des-entrées--codes-de-retour)
+- [Visualiser l'exécution de la trace](#visualiser-lexécution-de-la-trace)
+  - [Options du visualisateur](#options-du-visualisateur)
+  - [Exemples d'utilisation du visualisateur](#exemples-dutilisation-du-visualisateur)
+- [Structure du projet](#structure-du-projet)
+- [Règles et contraintes du sujet](#règles-et-contraintes-du-sujet)
+
+---
+
+## Installation & Prérequis
+
+- **Python 3.9+** (avec la bibliothèque standard uniquement).
+- Se placer dans le répertoire du projet avant d'exécuter les scripts :
+
+```bash
+cd robot-reconfort/base_fournie
 ```
-git clone <URL du dépôt>
-cd robot-reconfort
-python base_fournie/demo.py \
-    base_fournie/cartes/appartement_01.json \
-    base_fournie/cartes/scenario_01.json \
-    base_fournie/donnees \
-    sortie.json
+
+---
+
+## Commandes d'exécution (Usage)
+
+### Format de la commande
+
+L'agent respecte le contrat d'appel standard (section 2 de l'énoncé) :
+
+```bash
+python agent.py <carte.json> <scenario.json> <dossier_donnees> <trace_sortie.json>
 ```
 
-La démo ne résout rien : elle charge les quatre fichiers et écrit une trace
-où toutes les demandes échouent. C'est le squelette à remplir.
+- `<carte.json>` : Fichier décrivant les dimensions, le départ du robot, les résidents, l'armoire et le dictionnaire.
+- `<scenario.json>` : Fichier listant les demandes des résidents (numéro, résident cible, message).
+- `<dossier_donnees>` : Dossier contenant `dictionnaire.json` et `armoire.json`.
+- `<trace_sortie.json>` : Fichier JSON où sera enregistrée la trace complète d'exécution.
 
-Python 3.9 ou plus, aucune dépendance externe. Vous pouvez travailler dans
-un autre langage : seul le contrat d'appel (section 2 de l'énoncé) est
-imposé.
+---
 
-## Contenu
+### Exécution des scénarios (1 à 5)
 
-| | |
-|---|---|
-| `ENONCE.pdf` | l'énoncé, projet 1 et projet 2 |
-| `base_fournie/reconfort_io.py` | lecture des fichiers d'entrée, écriture de la trace |
-| `base_fournie/demo.py` | exemple d'utilisation |
-| `base_fournie/donnees/` | dictionnaire et armoire |
-| `base_fournie/cartes/` | cinq appartements et leurs scénarios |
-| `base_fournie/rendu.json` | modèle à compléter pour le rendu |
-| `base_fournie/MODELE_README.md` | squelette du README de votre dépôt |
+Les cartes et scénarios fournis se trouvent dans le sous-dossier `cartes/` :
 
+```bash
+# Scénario 1 (Appartement 1)
+python agent.py cartes/appartement_01.json cartes/scenario_01.json donnees sorties/trace_01.json
 
-## Travailler
+# Scénario 2 (Appartement 2)
+python agent.py cartes/appartement_02.json cartes/scenario_02.json donnees sorties/trace_02.json
 
-Ne travaillez pas dans ce dépôt. Créez le vôtre, et copiez-y `base_fournie/`.
+# Scénario 3 (Appartement 3)
+python agent.py cartes/appartement_03.json cartes/scenario_03.json donnees sorties/trace_03.json
 
-Rappel: votre historique Git fait partie du rendu. 
+# Scénario 4 (Appartement 4)
+python agent.py cartes/appartement_04.json cartes/scenario_04.json donnees sorties/trace_04.json
 
-## Deux interdits
+# Scénario 5 (Appartement 5)
+python agent.py cartes/appartement_05.json cartes/scenario_05.json donnees sorties/trace_05.json
+```
 
-Votre agent n'a le droit de lire **ni le champ `grille`** de la carte, **ni
-le champ `objet`** des casiers. Il découvre les murs case par case à travers
-ses perceptions, et le contenu des casiers en se plaçant devant. Sections
-3.2 et 3.3 de l'énoncé ; c'est vérifié à la correction.
+---
 
-## Si l'algorithmique des graphes vous est nouvelle
+### Validation des entrées & Codes de retour
 
-Lisez les annexes de l'énoncé avant d'écrire quoi que ce soit : parcours en
-largeur, exemple déroulé, pseudo-code et replanification. Tout y est.
+L'agent implémente une validation rigoureuse des arguments et des fichiers JSON d'entrée (section 5.6 de l'énoncé) :
+
+- **Code 0** : Exécution terminée avec succès (la trace est générée).
+- **Code 1** : Fichier absent, mal formé ou incohérent (message clair affiché sur `stderr`, aucune trace produite).
+- **Code 2** : Arguments de ligne de commande incorrects ou manquants (affiche le message d'usage).
+
+---
+
+## Visualiser l'exécution de la trace
+
+Un visualisateur interactif en terminal (`outils/visualiser.py`) permet de rejouer le déplacement du robot pas à pas, d'observer sa mémoire de la carte, la position du sélecteur d'armoire et les actions exécutées.
+
+### Format de la commande
+
+```bash
+python outils/visualiser.py <carte.json> <trace.json> [delai] [--demande N]
+```
+
+### Options du visualisateur
+
+| Paramètre / Option | Rôle | Valeur par défaut |
+|---|---|---|
+| `<carte.json>` | Fichier de la carte correspondant à la trace | *Obligatoire* |
+| `<trace.json>` | Trace générée par `agent.py` | *Obligatoire* |
+| `[delai]` | Vitesse d'animation en secondes par pas | `0.12` |
+| `--demande N` | Visualiser uniquement la demande numéro `N` | Toutes les demandes |
+
+### Exemples d'utilisation du visualisateur
+
+```bash
+# 1. Visualiser toute la trace du scénario 01 à vitesse normale (0.12s)
+python outils/visualiser.py cartes/appartement_01.json sorties/trace_01.json
+
+# 2. Visualiser plus rapidement (0.04s par pas)
+python outils/visualiser.py cartes/appartement_01.json sorties/trace_01.json 0.04
+
+# 3. Visualiser plus lentement pour observer en détail (0.3s par pas)
+python outils/visualiser.py cartes/appartement_01.json sorties/trace_01.json 0.3
+
+# 4. Visualiser uniquement la demande numéro 2
+python outils/visualiser.py cartes/appartement_01.json sorties/trace_01.json --demande 2
+
+# 5. Combiner vitesse rapide et demande spécifique
+python outils/visualiser.py cartes/appartement_01.json sorties/trace_01.json 0.05 --demande 3
+```
+
+---
+
+## Structure du projet
+
+```text
+robot-reconfort/base_fournie/
+├── agent.py                 # Point d'entrée principal (boucle décisionnelle, CLI)
+├── reconfort_io.py          # Chargement des entrées et écriture de trace conforme
+├── validation.py            # Validation robuste des schémas et cohérence des entrées
+├── rendu.json               # Métadonnées de l'équipe et commande de rendu
+├── cartes/                  # Cartes (appartement_01 à 05) et scénarios associés
+├── donnees/                 # armoire.json et dictionnaire.json
+├── sorties/                 # Fichiers de trace JSON générés
+├── outils/
+│   └── visualiser.py        # Visualisateur dynamique de trace en terminal
+└── robot/
+    ├── memoire.py           # Carte mentale et mémorisation des découvertes
+    ├── lecture_emotion.py   # Analyse du message et identification des émotions
+    ├── roue.py              # Roue de Plutchik et stratégie de repli
+    ├── selecteur.py         # Déplacements du sélecteur d'armoire
+    ├── action.py            # Exécution et log des actions
+    ├── geometrie.py         # Repère, distances de Manhattan et adjacences
+    └── decision.py          # Machine à états finis du robot et planification BFS
+```
+
+---
+
+## Règles et contraintes du sujet
+
+1. **Aucune triche sur l'environnement :**
+   - Le robot ne lit **jamais** `carte["grille"]` à l'avance : il découvre les murs case par case via son capteur local (`percevoir`).
+   - Le robot ne lit **jamais** le champ `"objet"` des casiers à l'avance : il découvre les objets uniquement lorsqu'il amène le sélecteur devant le casier.
+2. **Navigation optimale :** Recherche du plus court chemin par parcours en largeur (BFS) sur la carte mentale actualisée en temps réel.
+3. **Gestion des replis :** Application conforme des règles de repli de Plutchik en cas de casier vide dans l'armoire.
